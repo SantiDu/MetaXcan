@@ -1,6 +1,6 @@
 import numpy
 import logging
-from numpy.core import dot, array
+from numpy import dot, array
 from scipy import stats
 
 from .. import Exceptions

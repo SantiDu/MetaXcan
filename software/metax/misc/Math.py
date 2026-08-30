@@ -1,5 +1,5 @@
 import numpy
-from numpy.core import (product, asarray, dot, transpose, multiply, newaxis, maximum)
+from numpy import (prod as product, asarray, dot, transpose, multiply, newaxis, maximum)
 
 def _rc(s, tolerance):
     cutoff = tolerance * maximum.reduce(s)

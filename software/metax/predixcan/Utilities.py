@@ -270,9 +270,33 @@ class BasicPredictionRepository(PredictionRepository):
 
     def store_prediction(self):
         logging.info("Saving prediction as a text file")
-        d = pandas.DataFrame(self.genes)
-        result = pandas.concat([self.samples, d], axis=1, sort=False)
-        Utilities.save_dataframe(result, self.output_path)
+        gene_names = list(self.genes.keys())
+        n_samples = self.samples.shape[0]
+
+        # Get FID/IID as string arrays
+        if "FID" in self.samples.columns:
+            fid = self.samples["FID"].astype(str).values
+        else:
+            fid = numpy.array([""] * n_samples)
+        if "IID" in self.samples.columns:
+            iid = self.samples["IID"].astype(str).values
+        else:
+            iid = numpy.array([""] * n_samples)
+
+        # Write in batches to avoid creating a full DataFrame copy.
+        # Peak memory: self.genes (~1× matrix) + one batch (~small).
+        batch_size = 10000
+        with open(self.output_path, 'w') as f:
+            for start in range(0, n_samples, batch_size):
+                end = min(start + batch_size, n_samples)
+                batch_data = {"FID": fid[start:end], "IID": iid[start:end]}
+                batch_data.update({g: self.genes[g][start:end] for g in gene_names})
+                batch_df = pandas.DataFrame(batch_data)
+                batch_df.to_csv(f, sep="\t", index=False,
+                                header=(start == 0), na_rep="NA")
+                del batch_df, batch_data
+
+        self.genes.clear()
 
     def summary(self):
         return summary_report(self.stats, self.extra)
