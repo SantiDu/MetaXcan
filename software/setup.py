@@ -16,7 +16,7 @@ setuptools.setup(name="MetaXcan",
                  author="Alvaro Barbeira, Eric Torstenson",
                  author_email='alvarobarbeira@gmail.com, eric.s.torstenson@vanderbilt.edu',
                  url="TBD",
-                 packages=['metax', 'tests','metax.misc', 'metax.gwas','metax.metaxcan', 'metax.deprecated'],
+                 packages=['metax', 'metax.misc', 'metax.gwas','metax.metaxcan', 'metax.deprecated'],
                  license="TBD",
                  scripts=[  'M00_prerequisites.py',
                             'M01_covariances_correlations.py',
@@ -43,8 +43,6 @@ setuptools.setup(name="MetaXcan",
                  extras_require={"test": ["sqlalchemy"]},
                  long_description=read('Readme.md'),
                  keywords=['TBD'],
-                 test_suite='tests',
-                 package_data={'tests/files':['*']},
                  python_requires='>=3.9',
                  classifiers=[
                     "Development Status :: 4 - Beta",
@@ -54,3 +52,4 @@ setuptools.setup(name="MetaXcan",
                     "Programming Language :: Python :: 2.7"
                  ],
 )
+
