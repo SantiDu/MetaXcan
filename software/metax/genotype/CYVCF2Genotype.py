@@ -5,8 +5,9 @@ import pandas
 import numpy
 
 from metax.misc import Genomics
+from .Genotype import impute_dosage
 
-def vcf_file_geno_lines(path, mode="genotyped", variant_mapping=None, whitelist=None, skip_palindromic=False, liftover_conversion=None):
+def vcf_file_geno_lines(path, mode="genotyped", variant_mapping=None, whitelist=None, skip_palindromic=False, liftover_conversion=None, impute_missing="none", impute_missing_threshold=0.05):
     logging.log(9, "Processing vcf %s", path)
     vcf_reader = VCF(path)
 
@@ -40,7 +41,9 @@ def vcf_file_geno_lines(path, mode="genotyped", variant_mapping=None, whitelist=
                 for sample in variant.genotypes:
                     d_ = (sample[0] == a+1) + (sample[1] == a+1)
                     d.append(d_)
-                f = numpy.mean(numpy.array(d,dtype=numpy.int32))/2
+                d = numpy.array(d, dtype=numpy.float64)
+                d = impute_dosage(d, mode=impute_missing, threshold=impute_missing_threshold, varid=variant_id)
+                f = numpy.mean(d)/2
                 yield (variant_id, chr, pos, ref, alt, f) + tuple(d)
 
         elif mode == "imputed":
@@ -60,6 +63,7 @@ def vcf_file_geno_lines(path, mode="genotyped", variant_mapping=None, whitelist=
             
             try:
                 d = numpy.apply_along_axis(lambda x: x[0], 1, variant.format("DS"))
+                d = impute_dosage(d, mode=impute_missing, threshold=impute_missing_threshold, varid=variant_id)
                 f = numpy.mean(numpy.array(d)) / 2
                 yield (variant_id, chr, pos, ref, alt, f) + tuple(d)
             except KeyError:
@@ -68,12 +72,13 @@ def vcf_file_geno_lines(path, mode="genotyped", variant_mapping=None, whitelist=
             yield RuntimeError(f"Unsupported vcf mode = {mode}")
 
 
-def vcf_files_geno_lines(files, mode="genotyped", variant_mapping=None, whitelist=None, skip_palindromic=False, liftover_conversion=None):
+def vcf_files_geno_lines(files, mode="genotyped", variant_mapping=None, whitelist=None, skip_palindromic=False, liftover_conversion=None, impute_missing="none", impute_missing_threshold=0.05):
     logging.log(9, "Processing vcfs")
     for file in files:
         for l in vcf_file_geno_lines(file, mode=mode, variant_mapping=variant_mapping,
                     whitelist=whitelist, skip_palindromic=skip_palindromic,
-                    liftover_conversion=liftover_conversion):
+                    liftover_conversion=liftover_conversion,
+                    impute_missing=impute_missing, impute_missing_threshold=impute_missing_threshold):
             yield l
 
 def get_samples(path):
