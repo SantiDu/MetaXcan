@@ -36,17 +36,23 @@ def dosage_generator(args, variant_mapping=None, weights=None):
         whitelist = set(weights.rsid)
 
     d = None
+    impute_missing = getattr(args, "impute_missing", "none")
+    impute_missing_threshold = getattr(args, "impute_missing_threshold", 0.05)
+
     if args.text_genotypes:
         from metax.genotype import DosageGenotype
         d = DosageGenotype.dosage_files_geno_lines(args.text_genotypes, variant_mapping=variant_mapping,
-                whitelist=whitelist, skip_palindromic=args.skip_palindromic, liftover_conversion=liftover_conversion)
+                whitelist=whitelist, skip_palindromic=args.skip_palindromic, liftover_conversion=liftover_conversion,
+                impute_missing=impute_missing, impute_missing_threshold=impute_missing_threshold)
     elif args.bgen_genotypes:
         from metax.genotype import BGENGenotype
         d = BGENGenotype.bgen_files_geno_lines(args.bgen_genotypes,
-            variant_mapping=variant_mapping, force_colon=args.force_colon, use_rsid=args.bgen_use_rsid, whitelist=whitelist, skip_palindromic=args.skip_palindromic)
+            variant_mapping=variant_mapping, force_colon=args.force_colon, use_rsid=args.bgen_use_rsid, whitelist=whitelist, skip_palindromic=args.skip_palindromic,
+            impute_missing=impute_missing, impute_missing_threshold=impute_missing_threshold)
     elif args.vcf_genotypes:
         from metax.genotype import CYVCF2Genotype
-        d = CYVCF2Genotype.vcf_files_geno_lines(args.vcf_genotypes, mode=args.vcf_mode, variant_mapping=variant_mapping, whitelist=whitelist, skip_palindromic=args.skip_palindromic, liftover_conversion=liftover_conversion)
+        d = CYVCF2Genotype.vcf_files_geno_lines(args.vcf_genotypes, mode=args.vcf_mode, variant_mapping=variant_mapping, whitelist=whitelist, skip_palindromic=args.skip_palindromic, liftover_conversion=liftover_conversion,
+            impute_missing=impute_missing, impute_missing_threshold=impute_missing_threshold)
 
     if d is None:
         raise Exceptions.InvalidArguments("unsupported genotype input")
@@ -256,6 +262,8 @@ def add_arguments(parser):
     parser.add_argument("--sub_batch", help="compute on a specific slice of data", type=int, default=None)
     parser.add_argument("--only_entries", help="Compute only these entries in the models (e.g. a whitelist of genes)", nargs="+")
     parser.add_argument("--capture")
+    parser.add_argument("--impute_missing", help="How to handle missing dosages (NaN from missing genotype probabilities). 'none': keep NaN (default). 'mean': replace NaN with the SNP's mean dosage across samples, if missingness is below threshold.", choices=["none", "mean"], default="none")
+    parser.add_argument("--impute_missing_threshold", help="Maximum fraction of samples with missing dosage allowed before imputation is skipped (default: 0.05 = 5%%). SNPs with missingness above this threshold are kept as NaN with a warning.", type=float, default=0.05)
 
 if __name__ == "__main__":
     import argparse

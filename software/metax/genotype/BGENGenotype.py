@@ -1,13 +1,23 @@
 import numpy
 import pandas
 import logging
+import os
 from bgen import BgenReader
 
 from ..misc import Genomics
+from .Genotype import impute_dosage
 
-def bgen_file_geno_lines(file, variant_mapping = None, force_colon = False, use_rsid=False, whitelist=None, skip_palindromic=False, liftover_conversion=None):
+def _find_sample_file(bgen_path):
+    """Find .sample file matching a .bgen file (same base name)."""
+    sample_path = bgen_path.rsplit('.bgen', 1)[0] + '.sample'
+    if os.path.exists(sample_path):
+        return sample_path
+    return ''
+
+def bgen_file_geno_lines(file, variant_mapping = None, force_colon = False, use_rsid=False, whitelist=None, skip_palindromic=False, liftover_conversion=None, impute_missing="none", impute_missing_threshold=0.05):
     logging.log(9, "Processing bgen %s", file)
-    bfile = BgenReader(file)
+    sample_path = _find_sample_file(file)
+    bfile = BgenReader(file, sample_path=sample_path)
     dict_mapping = variant_mapping is not None and type(variant_mapping) == dict
     for variant in bfile:
         if use_rsid:
@@ -55,19 +65,22 @@ def bgen_file_geno_lines(file, variant_mapping = None, force_colon = False, use_
         else:
             d = numpy.apply_along_axis(lambda x: x[1] + x[2] * 2, 1, variant.probabilities)
 
+        d = impute_dosage(d, mode=impute_missing, threshold=impute_missing_threshold, varid=varid)
+
         #e = bgen_reader.allele_expectation(bgen, variant.Index)
         #d2 = bgen_reader.compute_dosage(e, alt=1)
 
         yield (varid, chr, pos, allele_0, allele_1, numpy.mean(d)/2) + tuple(d)
 
-def bgen_files_geno_lines(files, variant_mapping = None, force_colon = False, use_rsid=False, whitelist=None, skip_palindromic=False, liftover_conversion=None):
+def bgen_files_geno_lines(files, variant_mapping = None, force_colon = False, use_rsid=False, whitelist=None, skip_palindromic=False, liftover_conversion=None, impute_missing="none", impute_missing_threshold=0.05):
     logging.log(9, "Processing bgens")
     for file in files:
-        for l in bgen_file_geno_lines(file, variant_mapping=variant_mapping, force_colon=force_colon, use_rsid=use_rsid, whitelist=whitelist, skip_palindromic=skip_palindromic, liftover_conversion=liftover_conversion):
+        for l in bgen_file_geno_lines(file, variant_mapping=variant_mapping, force_colon=force_colon, use_rsid=use_rsid, whitelist=whitelist, skip_palindromic=skip_palindromic, liftover_conversion=liftover_conversion, impute_missing=impute_missing, impute_missing_threshold=impute_missing_threshold):
             yield l
 
 def get_samples(path):
     logging.info("Opening bgen to get samples")
-    bfile = BgenReader(path)
+    sample_path = _find_sample_file(path)
+    bfile = BgenReader(path, sample_path=sample_path)
     samples = pandas.DataFrame({"FID":bfile.samples, "IID":bfile.samples})[["FID", "IID"]]
     return samples
