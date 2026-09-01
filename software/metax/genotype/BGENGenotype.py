@@ -14,11 +14,7 @@ def _find_sample_file(bgen_path):
         return sample_path
     return ''
 
-<<<<<<< HEAD
-def bgen_file_geno_lines(file, variant_mapping = None, force_colon = False, use_rsid=False, whitelist=None, skip_palindromic=False, liftover_conversion=None):
-=======
 def bgen_file_geno_lines(file, variant_mapping = None, force_colon = False, use_rsid=False, whitelist=None, skip_palindromic=False, liftover_conversion=None, impute_missing="none", impute_missing_threshold=0.05):
->>>>>>> a414b57 (impute by mean, for missing genotypes)
     logging.log(9, "Processing bgen %s", file)
     sample_path = _find_sample_file(file)
     bfile = BgenReader(file, sample_path=sample_path)
